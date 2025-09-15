@@ -12,5 +12,6 @@ def main():
     user_count = args.user_count
     run_simulation(user_count=user_count)
 
+
 if __name__ == "__main__":
     main()

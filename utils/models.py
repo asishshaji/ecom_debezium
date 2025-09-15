@@ -14,6 +14,7 @@ class User:
     updated_at: datetime
     address: str
     gender: str
+    ip_address: str
 
     @classmethod
     def new(cls, faker: Faker):
@@ -34,4 +35,13 @@ class User:
             created_at=datetime.now(),
             updated_at=datetime.now(),
             gender=gender,
+            ip_address=faker.ipv4_public()
         )
+
+@dataclass
+class Product:
+    pass
+
+@dataclass
+class Event:
+    pass
