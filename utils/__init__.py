@@ -1,1 +1,1 @@
-from .db_writer import Database
+from .database import Database

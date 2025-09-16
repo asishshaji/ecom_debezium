@@ -31,8 +31,13 @@ class Database:
     def upsert(self):
         pass
 
-    def create_tables(self, ddls):
-        pass
+    async def create_tables(self, schema_str, ddls):
+        if not self.conn:
+            # log error
+            return
+        await self.conn.execute(schema_str)
+        for ddl in ddls:
+            await self.conn.execute(ddl)
 
     async def close(self):
         if self.conn:

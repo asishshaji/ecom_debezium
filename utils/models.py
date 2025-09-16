@@ -35,12 +35,30 @@ class User:
             created_at=datetime.now(),
             updated_at=datetime.now(),
             gender=gender,
-            ip_address=faker.ipv4_public()
+            ip_address=faker.ipv4_public(),
         )
+
+    @staticmethod
+    def ddl(schema):
+        return f"""
+            CREATE TABLE IF NOT EXISTS {schema}.USER (
+                id SERIAL PRIMARY KEY,
+                username VARCHAR(40) NOT NULL,
+                first_name VARCHAR(40) NOT NULL,
+                last_name VARCHAR(40) NOT NULL,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_DATE,
+                updated_at  TIMESTAMPTZ NOT NULL DEFAULT CURRENT_DATE,
+                address VARCHAR(50),
+                gender VARCHAR(1) NOT NULL CHECK(gender IN ('M', 'F', 'O')),
+                ip_address cidr NOT NULL
+            )
+        """
+
 
 @dataclass
 class Product:
     pass
+
 
 @dataclass
 class Event:
