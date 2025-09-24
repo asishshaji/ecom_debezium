@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import random
 from datetime import datetime
 from faker import Faker
+import uuid
 
 
 @dataclass
@@ -27,7 +28,7 @@ class User:
             last_name = faker.last_name_female()
 
         return User(
-            id=str(faker.uuid4()),
+            id=faker.uuid4(),
             username=faker.user_name(),
             first_name=first_name,
             last_name=last_name,
@@ -42,13 +43,13 @@ class User:
     def ddl(schema):
         return f"""
             CREATE TABLE IF NOT EXISTS {schema}.USER (
-                id SERIAL PRIMARY KEY,
+                id UUID PRIMARY KEY,
                 username VARCHAR(40) NOT NULL,
                 first_name VARCHAR(40) NOT NULL,
                 last_name VARCHAR(40) NOT NULL,
                 created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_DATE,
                 updated_at  TIMESTAMPTZ NOT NULL DEFAULT CURRENT_DATE,
-                address VARCHAR(50),
+                address VARCHAR(100),
                 gender VARCHAR(1) NOT NULL CHECK(gender IN ('M', 'F', 'O')),
                 ip_address cidr NOT NULL
             )
@@ -57,7 +58,59 @@ class User:
 
 @dataclass
 class Product:
-    pass
+    id: str
+    name: str
+    main_category: str
+    sub_category: str
+    image: str
+    link: str
+    ratings: float
+    no_of_ratings: int
+    discount_price: float
+    actual_price: float
+
+    @classmethod
+    def new(
+        cls,
+        name: str,
+        main_category: str,
+        sub_category: str,
+        image: str,
+        link: str,
+        ratings: float,
+        no_of_ratings: int,
+        discount_price: float,
+        actual_price: float,
+    ):
+        return Product(
+            id=str(uuid.uuid4()),
+            name=name,
+            main_category=main_category,
+            sub_category=sub_category,
+            image=image,
+            link=link,
+            ratings=ratings,
+            no_of_ratings=no_of_ratings,
+            discount_price=discount_price,
+            actual_price=actual_price,
+        )
+
+    @staticmethod
+    def ddl(schema):
+        return f"""
+            CREATE TABLE IF NOT EXISTS {schema}.PRODUCT (
+            id UUID PRIMARY KEY,
+            name TEXT NOT NULL,
+            main_category VARCHAR(50) NOT NULL,
+            sub_category VARCHAR(50) NOT NULL,
+            image TEXT,
+            link TEXT NOT NULL,
+            ratings REAL,
+            no_of_ratings NUMERIC,
+            discount_price REAL,
+            actual_price REAL
+            )
+        """
 
 
 @dataclass
