@@ -11,15 +11,18 @@ def main():
         "--truncate_table", action="store_true", help="truncate existing tables"
     )
     parser.add_argument("--rebuild", action="store_true", help="delete database")
+    parser.add_argument("--skip_init", action="store_true", help="skip initialization")
     args = parser.parse_args()
 
     user_count = args.user_count
     truncate_table = args.truncate_table
     rebuild_database = args.rebuild
+    skip_init = args.skip_init
     run_simulation(
         user_count=user_count,
         truncate_table=truncate_table,
         rebuild_database=rebuild_database,
+        skip_init = skip_init
     )
 
 

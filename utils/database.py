@@ -39,18 +39,43 @@ class Database:
         )
         return cls(logger=logger, conn=conn, schema=schema)
 
-    def select(
+    async def select(
         self,
         table: str,
-        columns: list[str],
+        columns: list[str] | None = None,
         where_clause: dict[str, Any] | None = None,
         order_by: list[str] | None = None,
-        limit: list[str] | None = None,
+        limit: int | None = None,
     ):
         """
         select columns.... from schema.table where .... order by .... limit ....
         """
-        pass
+        columns_placeholder = ""
+        if not columns:
+            columns_placeholder = "*"
+        else:
+            columns_placeholder = ",".join(columns)
+
+        temp_where_placeholder = ""
+        if where_clause:
+            temp_where_placeholder = " AND ".join(
+                [f"{key} = {value}" for key, value in where_clause.items()]
+            )
+        where_placeholder = ""
+        if temp_where_placeholder:
+            where_placeholder = f"WHERE {temp_where_placeholder}"
+
+        order_by_placeholder = ""
+        if order_by:
+            order_by_placeholder = ", ".join(order_by)
+
+        limit_placeholder = ""
+        if limit:
+            limit_placeholder = f"LIMIT {limit}"
+
+        query = f"SELECT {columns_placeholder} from {self.schema}.{table} {where_placeholder} {order_by_placeholder} {limit_placeholder}"
+        res = await self.conn.fetch(query)
+        print(res)
 
     async def upsert(
         self,

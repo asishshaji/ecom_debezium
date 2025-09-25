@@ -2,7 +2,7 @@ import asyncio
 
 from utils import Database
 from faker import Faker
-from utils.models import User, Product
+from utils.models import User, Product, Event
 import logging
 import aiofiles
 from aiocsv import AsyncReader
@@ -22,7 +22,7 @@ class Generator:
         self.schema = schema
 
         self.faker = Faker()
-        self.tables = [User, Product]
+        self.tables = [User, Product, Event]
 
         self.db_writer: Database | None = None
         self.logger: logging.Logger = logger
@@ -39,7 +39,7 @@ class Generator:
         ddls = [table.ddl("test") for table in self.tables]
         await db_writer.create_tables(schema_str=schema_str, ddls=ddls)
 
-    async def initialize(self):
+    async def initialize(self, skip_init: bool = False):
         tasks = []
         try:
             # create database writer
@@ -52,6 +52,10 @@ class Generator:
                 logger=self.logger,
                 schema=self.schema,
             )
+
+            if skip_init:
+                self.logger.warning("skipping creating database")
+                return True
 
             # run ddl
             await self.run_ddl(self.db_writer, self.rebuild_database)
@@ -72,10 +76,6 @@ class Generator:
             self.logger.error(f"error initializing generator: {e}")
             traceback.print_exc()
             return False
-        finally:
-            if self.db_writer:
-                await self.db_writer.close()
-
         return True
 
     async def truncate_tables(self, db_writer: Database):
@@ -88,7 +88,7 @@ class Generator:
         for _ in range(self.user_count):
             u = User.new(faker=self.faker)
             users.append(u)
-        # on conflict of usernames update, the information
+
         await self.db_writer.upsert(
             data=users, table="USER", conflict_keys=["username"]
         )
@@ -133,11 +133,13 @@ class Generator:
                 )
                 products.append(p)
 
-            await self.db_writer.upsert(data=products, table="PRODUCT")
+            await self.db_writer.upsert(
+                data=products, table="PRODUCT", conflict_keys=["name"]
+            )
 
-    async def start(self):
+    async def start(self, skip_init: bool = False):
         try:
-            if await self.initialize():
+            if await self.initialize(skip_init):
                 await self.run()
             else:
                 raise Exception("error initializing generator")
@@ -147,14 +149,19 @@ class Generator:
 
     async def run(self):
         while True:
-            # do stuff
+            # get a random user
+            u = await self.db_writer.select(table="USER", limit=1)
+            self.logger.info(f"select user : {u}")
             break
+
+        if self.db_writer:
+            await self.db_writer.close()
 
 
 def run_simulation(
-    user_count: int, truncate_table: bool = False, rebuild_database: bool = False
+    user_count: int, truncate_table: bool = False, rebuild_database: bool = False, skip_init: bool = False
 ):
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(name="ecom_debezium")
 
     generator = Generator(
@@ -165,7 +172,7 @@ def run_simulation(
         rebuild_database=rebuild_database,
     )
     try:
-        asyncio.run(generator.start())
+        asyncio.run(generator.start(skip_init))
     except KeyboardInterrupt as e:
         print(f"User exit triggered, stopping: {e}")
     except Exception as e:
