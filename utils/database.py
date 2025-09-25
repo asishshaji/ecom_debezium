@@ -69,6 +69,15 @@ class Database:
         values = [tuple(row.get(col) for col in columns) for row in norm]
         await self.conn.executemany(query, values)
 
+    async def truncate_tables(self, table_names):
+        if not table_names:
+            return
+
+        query_input = [f"{self.schema}.{table_name}" for table_name in table_names]
+        query = f"TRUNCATE {','.join(query_input)}"
+
+        await self.conn.execute(query)
+
     def _normalize(self, data: list[dict | T]):
         if len(data) == 0:
             return []

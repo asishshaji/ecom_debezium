@@ -39,10 +39,10 @@ class User:
             ip_address=faker.ipv4_public(),
         )
 
-    @staticmethod
-    def ddl(schema):
+    @classmethod
+    def ddl(cls,schema):
         return f"""
-            CREATE TABLE IF NOT EXISTS {schema}.USER (
+            CREATE TABLE IF NOT EXISTS {schema}.{cls.__name__} (
                 id UUID PRIMARY KEY,
                 username VARCHAR(40) NOT NULL,
                 first_name VARCHAR(40) NOT NULL,
@@ -95,10 +95,10 @@ class Product:
             actual_price=actual_price,
         )
 
-    @staticmethod
-    def ddl(schema):
+    @classmethod
+    def ddl(cls,schema):
         return f"""
-            CREATE TABLE IF NOT EXISTS {schema}.PRODUCT (
+            CREATE TABLE IF NOT EXISTS {schema}.{cls.__name__} (
             id UUID PRIMARY KEY,
             name TEXT NOT NULL,
             main_category VARCHAR(50) NOT NULL,

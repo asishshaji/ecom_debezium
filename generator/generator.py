@@ -10,7 +10,7 @@ import traceback
 
 
 class Generator:
-    def __init__(self, user_count: int, schema: str, logger: logging.Logger) -> None:
+    def __init__(self, user_count: int, schema: str, logger: logging.Logger, truncate_table: bool = False) -> None:
         self.user_count = user_count
         self.schema = schema
 
@@ -19,6 +19,7 @@ class Generator:
 
         self.db_writer: Database | None = None
         self.logger: logging.Logger = logger
+        self.truncate_table = truncate_table
 
     async def run_ddl(self, db_writer: Database):
         # create schema first
@@ -44,6 +45,9 @@ class Generator:
             # run ddl
             await self.run_ddl(self.db_writer)
 
+            if self.truncate_table:
+                await self.truncate_tables(self.db_writer)
+
             # create users
             create_user_task = asyncio.create_task(self.create_users())
             tasks.append(create_user_task)
@@ -62,6 +66,9 @@ class Generator:
                 await self.db_writer.close()
 
         return True
+
+    async def truncate_tables(self, db_writer: Database):
+        await db_writer.truncate_tables(table_names= [table.__name__ for table in self.tables])
 
     async def create_users(self):
         users = []
@@ -93,7 +100,7 @@ class Generator:
                     )
                 except Exception as e:
                     # original dataset has some issues, so skipping some values
-                    self.logger.error(e)
+                    self.logger.warning(e)
                     continue
 
                 p = Product.new(
@@ -127,11 +134,12 @@ class Generator:
             break
 
 
-def run_simulation(user_count: int):
+def run_simulation(user_count: int, truncate_table: bool = False):
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(name="ecom_debezium")
 
-    generator = Generator(user_count=user_count, schema="test", logger=logger)
+    generator = Generator(user_count=user_count, schema="test",
+                          logger=logger, truncate_table=truncate_table)
     try:
         asyncio.run(generator.start())
     except KeyboardInterrupt as e:
