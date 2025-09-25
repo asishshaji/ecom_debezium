@@ -40,7 +40,7 @@ class User:
             created_at=datetime.now(),
             updated_at=datetime.now(),
             gender=gender,
-            ip_address=faker.ipv4_public(),
+            ip_address=faker.ipv4(),
             user_agent=faker.user_agent(),
         )
 
@@ -143,11 +143,11 @@ class Event:
         faker: Faker,
         user_name: str,
         event_type: EventType,
-        metadata: dict[str, Any],
+        metadata: dict[str, Any] | None = None,
     ):
         return Event(
             id=str(uuid.uuid4()),
-            ip_address=faker.ipv4_public(),
+            ip_address=faker.ipv4(),
             user_name=user_name,
             user_agent=faker.user_agent(),
             event_type=event_type.value,

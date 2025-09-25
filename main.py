@@ -22,7 +22,7 @@ def main():
         user_count=user_count,
         truncate_table=truncate_table,
         rebuild_database=rebuild_database,
-        skip_init = skip_init
+        skip_init=skip_init,
     )
 
 

@@ -4,6 +4,7 @@ import asyncpg
 from asyncpg import Connection
 from logging import Logger
 from typing import Any
+import json
 
 
 class DataclassProtocol(Protocol):
@@ -68,6 +69,7 @@ class Database:
         order_by_placeholder = ""
         if order_by:
             order_by_placeholder = ", ".join(order_by)
+            order_by_placeholder = f"ORDER BY {order_by_placeholder}"
 
         limit_placeholder = ""
         if limit:
@@ -75,7 +77,7 @@ class Database:
 
         query = f"SELECT {columns_placeholder} from {self.schema}.{table} {where_placeholder} {order_by_placeholder} {limit_placeholder}"
         res = await self.conn.fetch(query)
-        print(res)
+        return res
 
     async def upsert(
         self,
@@ -113,7 +115,16 @@ class Database:
         else:
             query = f"INSERT INTO {self.schema}.{table} ({columns_str}) VALUES ({insert_placeholders}) ON CONFLICT ({conflict_placeholders}) DO UPDATE SET {update_placeholders}"
 
-        values = [tuple(row.get(col) for col in columns) for row in norm]
+        # values = [tuple(row.get(col) for col in columns) for row in norm]
+        values = []
+        for row in norm:
+            items = []
+            for col in columns:
+                item = row.get(col)
+                if isinstance(item, dict):
+                    item = json.dumps(item)
+                items.append(item)
+            values.append(tuple(items))
 
         await self.conn.executemany(query, values)
 

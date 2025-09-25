@@ -7,6 +7,10 @@ import logging
 import aiofiles
 from aiocsv import AsyncReader
 import traceback
+from asyncpg import Record
+from utils.models import EventType
+import random
+from utils.utils import timeit
 
 
 class Generator:
@@ -147,19 +151,83 @@ class Generator:
             self.logger.error(f"error starting generator: {e}")
             raise e
 
-    async def run(self):
-        while True:
-            # get a random user
-            u = await self.db_writer.select(table="USER", limit=1)
-            self.logger.info(f"select user : {u}")
-            break
+    async def user_routine(self, semaphore: asyncio.Semaphore):
+        user_buffer = []
+        user_buffer_limit = 50
+        async with semaphore:
+            try:
+                u = await self.db_writer.select(
+                    table="USER", limit=1, order_by=["RANDOM()"]
+                )
+                username = u[0]["username"]
 
-        if self.db_writer:
-            await self.db_writer.close()
+                # simulate user viewing products
+                products: list[Record] = await self.db_writer.select(
+                    table="PRODUCT", limit=10, order_by=["RANDOM()"]
+                )
+
+                # each user is expected to perform actions
+                for _ in range(100):
+                    event_type: EventType = random.choice(list(EventType))
+                    self.logger.info(f"{username} doing {event_type}")
+                    event = Event.new(
+                        faker=self.faker,
+                        user_name=username,
+                        event_type=event_type,
+                    )
+
+                    if event_type == EventType.PURCHASE:
+                        # TODO create order
+                        # update event with product information
+                        product = random.choice(products)
+                        qty = random.randint(1,10)
+
+                        event.metadata = {"product_id": str(product["id"]), "quantity": qty}
+
+                    if len(user_buffer) < user_buffer_limit:
+                        user_buffer.append(event)
+                    else:
+                        await self.db_writer.upsert(table="EVENT", data=user_buffer)
+                        user_buffer.clear()
+
+                    # simulate delay between events
+                    await asyncio.sleep(random.uniform(0, 1))
+
+                # if buffer is not empty, force flush
+                if len(user_buffer) != 0:
+                    await self.db_writer.upsert(table="EVENT", data=user_buffer)
+
+            except asyncio.CancelledError:
+                self.logger.info(f"cancelling routine of {username}")
+                await self.db_writer.upsert(table="EVENT", data=user_buffer)
+                raise
+            finally:
+                self.logger.info(f"{username} done!!!")
+
+    async def run(self):
+        # simulate x concurrent users
+        semaphore = asyncio.Semaphore(5)
+        try:
+            while True:
+                # create x users, but is limited by x limit in semaphore
+                user_flow_tasks = [self.user_routine(semaphore) for _ in range(10)]
+                await asyncio.gather(*user_flow_tasks)
+                break
+
+        except asyncio.CancelledError:
+            self.logger.info("Runner cancelled, flushing buffer before exit...")
+            # await self.db_writer.upsert(table="EVENT", data=event_buffer)
+            raise
+        finally:
+            if self.db_writer:
+                await self.db_writer.close()
 
 
 def run_simulation(
-    user_count: int, truncate_table: bool = False, rebuild_database: bool = False, skip_init: bool = False
+    user_count: int,
+    truncate_table: bool = False,
+    rebuild_database: bool = False,
+    skip_init: bool = False,
 ):
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(name="ecom_debezium")
