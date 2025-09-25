@@ -10,7 +10,14 @@ import traceback
 
 
 class Generator:
-    def __init__(self, user_count: int, schema: str, logger: logging.Logger, truncate_table: bool = False) -> None:
+    def __init__(
+        self,
+        user_count: int,
+        schema: str,
+        logger: logging.Logger,
+        truncate_table: bool = False,
+        rebuild_database: bool = False,
+    ) -> None:
         self.user_count = user_count
         self.schema = schema
 
@@ -20,8 +27,12 @@ class Generator:
         self.db_writer: Database | None = None
         self.logger: logging.Logger = logger
         self.truncate_table = truncate_table
+        self.rebuild_database = rebuild_database
 
-    async def run_ddl(self, db_writer: Database):
+    async def run_ddl(self, db_writer: Database, rebuild_database: bool = False):
+        if rebuild_database:
+            await db_writer.drop_schema()
+
         # create schema first
         schema_str = f"CREATE SCHEMA IF NOT EXISTS {self.schema}"
 
@@ -43,7 +54,7 @@ class Generator:
             )
 
             # run ddl
-            await self.run_ddl(self.db_writer)
+            await self.run_ddl(self.db_writer, self.rebuild_database)
 
             if self.truncate_table:
                 await self.truncate_tables(self.db_writer)
@@ -68,7 +79,9 @@ class Generator:
         return True
 
     async def truncate_tables(self, db_writer: Database):
-        await db_writer.truncate_tables(table_names= [table.__name__ for table in self.tables])
+        await db_writer.truncate_tables(
+            table_names=[table.__name__ for table in self.tables]
+        )
 
     async def create_users(self):
         users = []
@@ -86,8 +99,9 @@ class Generator:
             async for row in reader:
                 try:
                     ratings = None if row[5] == "" else float(row[5])
-                    no_of_ratings = None if row[6] == "" else int(
-                        row[6].replace(",", ""))
+                    no_of_ratings = (
+                        None if row[6] == "" else int(row[6].replace(",", ""))
+                    )
                     discount_price = (
                         None
                         if row[7] == ""
@@ -134,12 +148,19 @@ class Generator:
             break
 
 
-def run_simulation(user_count: int, truncate_table: bool = False):
-    logging.basicConfig(level=logging.INFO)
+def run_simulation(
+    user_count: int, truncate_table: bool = False, rebuild_database: bool = False
+):
+    logging.basicConfig(level=logging.DEBUG)
     logger = logging.getLogger(name="ecom_debezium")
 
-    generator = Generator(user_count=user_count, schema="test",
-                          logger=logger, truncate_table=truncate_table)
+    generator = Generator(
+        user_count=user_count,
+        schema="test",
+        logger=logger,
+        truncate_table=truncate_table,
+        rebuild_database=rebuild_database,
+    )
     try:
         asyncio.run(generator.start())
     except KeyboardInterrupt as e:

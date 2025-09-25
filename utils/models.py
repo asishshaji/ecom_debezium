@@ -40,7 +40,7 @@ class User:
         )
 
     @classmethod
-    def ddl(cls,schema):
+    def ddl(cls, schema):
         return f"""
             CREATE TABLE IF NOT EXISTS {schema}.{cls.__name__} (
                 id UUID PRIMARY KEY,
@@ -96,7 +96,7 @@ class Product:
         )
 
     @classmethod
-    def ddl(cls,schema):
+    def ddl(cls, schema):
         return f"""
             CREATE TABLE IF NOT EXISTS {schema}.{cls.__name__} (
             id UUID PRIMARY KEY,

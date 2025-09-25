@@ -62,8 +62,7 @@ class Database:
         placeholders = ", ".join(f"${i + 1}" for i in range(len(columns)))
         # TODO add ON CONFLICT, update clause
         query = (
-            f"INSERT INTO {self.schema}.{
-                table} ({columns_str}) VALUES ({placeholders})"
+            f"INSERT INTO {self.schema}.{table} ({columns_str}) VALUES ({placeholders})"
         )
 
         values = [tuple(row.get(col) for col in columns) for row in norm]
@@ -92,6 +91,10 @@ class Database:
         await self.conn.execute(schema_str)
         for ddl in ddls:
             await self.conn.execute(ddl)
+
+    async def drop_schema(self):
+        query = f"DROP SCHEMA IF EXISTS {self.schema} CASCADE"
+        await self.conn.execute(query)
 
     async def close(self):
         if self.conn:
