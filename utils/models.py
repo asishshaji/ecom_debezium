@@ -44,7 +44,7 @@ class User:
         return f"""
             CREATE TABLE IF NOT EXISTS {schema}.{cls.__name__} (
                 id UUID PRIMARY KEY,
-                username VARCHAR(40) NOT NULL,
+                username VARCHAR(40) NOT NULL UNIQUE,
                 first_name VARCHAR(40) NOT NULL,
                 last_name VARCHAR(40) NOT NULL,
                 created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_DATE,

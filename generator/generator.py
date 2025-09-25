@@ -88,7 +88,10 @@ class Generator:
         for _ in range(self.user_count):
             u = User.new(faker=self.faker)
             users.append(u)
-        await self.db_writer.upsert(data=users, table="USER")
+        # on conflict of usernames update, the information
+        await self.db_writer.upsert(
+            data=users, table="USER", conflict_keys=["username"]
+        )
 
     async def create_products(self):
         async with aiofiles.open("static/products.csv", mode="r") as pfp:

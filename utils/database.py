@@ -53,19 +53,43 @@ class Database:
         pass
 
     async def upsert(
-        self, table: str, data: list[dict | T], conflict_keys: list[str] | None = None
+        self,
+        table: str,
+        data: list[dict | T],
+        conflict_keys: list[str] | None = None,
+        update_fields: list[str] | None = None,
     ) -> None:
+        if conflict_keys == None:
+            conflict_keys = []
+
         norm = self._normalize(data)
         columns = list(norm[0].keys())
         columns_str = ", ".join(columns)
 
-        placeholders = ", ".join(f"${i + 1}" for i in range(len(columns)))
-        # TODO add ON CONFLICT, update clause
-        query = (
-            f"INSERT INTO {self.schema}.{table} ({columns_str}) VALUES ({placeholders})"
-        )
+        insert_placeholders = ", ".join(f"${i + 1}" for i in range(len(columns)))
+
+        if not update_fields:
+            update_placeholders = ", ".join(
+                [
+                    f"{col} = EXCLUDED.{col}"
+                    for col in columns
+                    if col not in conflict_keys
+                ]
+            )
+        else:
+            update_placeholders = ", ".join(
+                [f"{field} = EXCLUDED.{field}" for field in update_fields]
+            )
+
+        conflict_placeholders = ",".join(conflict_keys)
+
+        if conflict_placeholders == "":
+            query = f"INSERT INTO {self.schema}.{table} ({columns_str}) VALUES ({insert_placeholders})"
+        else:
+            query = f"INSERT INTO {self.schema}.{table} ({columns_str}) VALUES ({insert_placeholders}) ON CONFLICT ({conflict_placeholders}) DO UPDATE SET {update_placeholders}"
 
         values = [tuple(row.get(col) for col in columns) for row in norm]
+
         await self.conn.executemany(query, values)
 
     async def truncate_tables(self, table_names):
