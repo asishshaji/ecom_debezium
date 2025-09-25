@@ -176,13 +176,64 @@ class Generator:
                         event_type=event_type,
                     )
 
+                    product = random.choice(products)
                     if event_type == EventType.PURCHASE:
                         # TODO create order
                         # update event with product information
-                        product = random.choice(products)
-                        qty = random.randint(1,10)
+                        qty = random.randint(1, 10)
 
-                        event.metadata = {"product_id": str(product["id"]), "quantity": qty}
+                        event.metadata = {
+                            "product_id": str(product["id"]),
+                            "quantity": qty,
+                            "actual_price": product["actual_price"],
+                            "discount_price": product["discount_price"],
+                            "currency": random.choice(["INR", "USD", "EUR"]),
+                            "payment_method": random.choice(
+                                ["CARD", "UPI", "COD", "WALLET"]
+                            ),
+                        }
+                    elif event_type == EventType.SCROLL:
+                        event.metadata = {
+                            "page": random.choice(
+                                ["home", "search", "product", "cart", "checkout"]
+                            ),
+                            "scroll_depth": random.randint(0, 1),
+                            "duration_ms": random.randint(0, 4000),
+                        }
+                    elif event_type == EventType.CLICK:
+                        event.metadata = {
+                            "element_type": random.choice(
+                                ["button", "link", "image", "add_to_cart", "checkout"]
+                            ),
+                            "element_id": f"el-{random.randint(1000, 9999)}",
+                            "page": random.choice(
+                                ["home", "product", "cart", "search"]
+                            ),
+                            "target_url": self.faker.uri_path(),
+                        }
+                    elif event_type == EventType.VIEW_PRODUCT:
+                        event.metadata = {
+                            "product_id": str(product["id"]),
+                            "main_category": product["main_category"],
+                            "sub_category": product["sub_category"],
+                            "referrer": random.choice(
+                                ["home", "search", "recommendation"]
+                            ),
+                            "duration_ms": random.randint(1000, 30000),
+                        }
+                    elif event_type == EventType.CANCEL:
+                        event.metadata = {
+                            # "order_id": str(faker.uuid4()),
+                            "reason": random.choice(
+                                [
+                                    "changed_mind",
+                                    "found_cheaper",
+                                    "delivery_delay",
+                                    "other",
+                                ]
+                            ),
+                            # "time_since_purchase_min": random.randint(1, 1440),
+                        }
 
                     if len(user_buffer) < user_buffer_limit:
                         user_buffer.append(event)
