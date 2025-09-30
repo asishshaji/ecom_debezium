@@ -10,9 +10,7 @@ import json
 class DataclassProtocol(Protocol):
     __dataclass_fields__: dict
 
-
 T = TypeVar("T", bound=DataclassProtocol)
-
 
 class Database:
     def __init__(self, logger: Logger, schema: str, conn: Connection | None = None):
@@ -31,14 +29,14 @@ class Database:
         schema: str,
         logger: Logger,
     ):
-        conn = await asyncpg.create_pool(
+        pool = await asyncpg.create_pool(
             user=user,
             database=database,
             password=password,
             port=port,
             host=host,
         )
-        return cls(logger=logger, conn=conn, schema=schema)
+        return cls(logger=logger, conn=pool, schema=schema)
 
     async def select(
         self,

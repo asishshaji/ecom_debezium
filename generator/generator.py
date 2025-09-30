@@ -267,7 +267,6 @@ class Generator:
 
         except asyncio.CancelledError:
             self.logger.info("Runner cancelled, flushing buffer before exit...")
-            # await self.db_writer.upsert(table="EVENT", data=event_buffer)
             raise
         finally:
             if self.db_writer:

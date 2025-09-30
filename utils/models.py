@@ -1,4 +1,3 @@
-from ipaddress import ip_address
 from enum import Enum
 from dataclasses import dataclass
 import random
@@ -23,7 +22,7 @@ class User:
 
     @classmethod
     def new(cls, faker: Faker):
-        gender: str = random.choice(["M", "F"])
+        gender: str = random.choice(["M", "F", "O"])
         if gender == "M":
             first_name = faker.first_name_male()
             last_name = faker.last_name_male()
