@@ -1,5 +1,5 @@
-from user_activity_state_machine.uasm import UASM
-from user_activity_state_machine.state import TerminalState
+from user_workflow_state_machine.workflow_sm import UserWorkflowStateMachine
+from user_workflow_state_machine.state import TerminalState
 
 
 def _on_process_authenticate():
@@ -23,12 +23,12 @@ def _on_process_entry():
 
 
 def test_uasm():
-    uasm = UASM(
+    sm = UserWorkflowStateMachine(
         on_process_entry=_on_process_entry,
         on_process_authenticate=_on_process_authenticate,
         on_process_browsing=_on_process_browsing,
         on_process_unauthenticated=_on_process_unauthenticated,
         on_process_terminal=_on_process_terminal,
     )
-    out_state = uasm.handle()
+    out_state = sm.handle()
     assert isinstance(out_state, TerminalState)

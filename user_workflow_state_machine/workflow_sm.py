@@ -1,14 +1,9 @@
-from user_activity_state_machine.state import AuthenticatedState
-from user_activity_state_machine.state import UnauthenticatedState
-from user_activity_state_machine.state import BrowsingState
-from .state import StateInterface
-from .state import EntryState
-from .state import TerminalState
+from .state import StateInterface, AuthenticatedState, BrowsingState, UnauthenticatedState, TerminalState, EntryState
 from collections import deque
 import random
 
 
-class UASM:
+class UserWorkflowStateMachine:
     def __init__(
         self,
         on_process_entry=None,

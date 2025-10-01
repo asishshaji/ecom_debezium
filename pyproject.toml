@@ -10,4 +10,5 @@ dependencies = [
     "asyncpg>=0.30.0",
     "debugpy>=1.8.17",
     "faker>=37.6.0",
+    "pytest>=8.4.2",
 ]
