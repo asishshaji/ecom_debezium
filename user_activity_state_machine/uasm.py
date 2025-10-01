@@ -1,6 +1,6 @@
 from state import EntryState
 from state import StateInterface
-from state import UnauthenticatedState
+from state import TerminalState
 from action import Action
 
 
@@ -9,7 +9,5 @@ class UASM:
         self.state: StateInterface = EntryState()
 
     def handle(self):
-        while not isinstance(self.state, UnauthenticatedState):
+        while not isinstance(self.state, TerminalState):
             self.state = self.state.next_state(action=Action.LOGIN)
-
-        self.state.next_state(action = None)

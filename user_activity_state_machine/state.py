@@ -15,7 +15,7 @@ import time
 
 
 class StateInterface(ABC):
-    def __init__(self, next_states):
+    def __init__(self, next_states=None):
         self.next_states: list[Type["StateInterface"]] = next_states or []
 
     @abstractmethod
@@ -68,11 +68,22 @@ class BrowsingState(StateInterface):
 
 class UnauthenticatedState(StateInterface):
     def __init__(self):
-        super().__init__([])
+        super().__init__([TerminalState])
 
     def _on_process(self):
         print("user is logging out")
 
     def next_state(self, action: Action) -> StateInterface:
-        self.__on_process()
+        self._on_process()
+        return random.choice(self.next_states)()
+
+
+class TerminalState(StateInterface):
+    def __init__(self):
+        super().__init__([])
+
+    def _on_process(self):
+        print("Reached terminal state. Exiting.")
+
+    def next_state(self, action: Action) -> StateInterface:
         return self
