@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from abc import ABC
 from typing import Type
 
@@ -7,42 +8,33 @@ class StateInterface(ABC):
         self.next_states: list[Type["StateInterface"]] = next_states or []
         self.on_process = on_process
 
-
 class EntryState(StateInterface):
-    def __init__(self, next_states, on_process):
-        super().__init__(next_states, on_process)
+    pass
 
 
 class AuthenticatedState(StateInterface):
-    def __init__(self, next_states, on_process):
-        super().__init__(next_states, on_process)
+    pass
 
 
 class BrowsingState(StateInterface):
-    def __init__(self, next_states, on_process):
-        super().__init__(next_states, on_process)
+    pass
 
 
 class ViewProductState(StateInterface):
-    def __init__(self, next_states, on_process):
-        super().__init__(next_states, on_process)
+    pass
 
 
 class AddToCartState(StateInterface):
-    def __init__(self, next_states, on_process):
-        super().__init__(next_states, on_process)
+    pass
 
 
 class RemoveFromCart(StateInterface):
-    def __init__(self, next_states, on_process):
-        super().__init__(next_states, on_process)
+    pass
 
 
 class UnauthenticatedState(StateInterface):
-    def __init__(self, next_states, on_process):
-        super().__init__(next_states, on_process)
+    pass
 
 
 class TerminalState(StateInterface):
-    def __init__(self, next_states, on_process):
-        super().__init__(next_states, on_process)
+    pass
