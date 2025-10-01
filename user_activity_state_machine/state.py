@@ -6,12 +6,11 @@
 # CANCELLED = "CANCELLED"
 # UNAUTHENTICATED = "UNAUTHENTICATED"
 
-from action import Action
+from .action import Action
 from abc import ABC
 from abc import abstractmethod
 from typing import Type
 import random
-import time
 
 
 class StateInterface(ABC):
@@ -46,7 +45,6 @@ class AuthenticatedState(StateInterface):
 
     def _on_process(self):
         print("authenticating user")
-        time.sleep(2)
 
     def next_state(self, action: Action) -> StateInterface:
         self._on_process()
@@ -59,7 +57,6 @@ class BrowsingState(StateInterface):
 
     def _on_process(self):
         print("user is browsing")
-        time.sleep(1)
 
     def next_state(self, action: Action) -> StateInterface:
         self._on_process()
