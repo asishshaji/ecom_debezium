@@ -23,6 +23,21 @@ class BrowsingState(StateInterface):
         super().__init__(next_states, on_process)
 
 
+class ViewProductState(StateInterface):
+    def __init__(self, next_states, on_process):
+        super().__init__(next_states, on_process)
+
+
+class AddToCartState(StateInterface):
+    def __init__(self, next_states, on_process):
+        super().__init__(next_states, on_process)
+
+
+class RemoveFromCart(StateInterface):
+    def __init__(self, next_states, on_process):
+        super().__init__(next_states, on_process)
+
+
 class UnauthenticatedState(StateInterface):
     def __init__(self, next_states, on_process):
         super().__init__(next_states, on_process)

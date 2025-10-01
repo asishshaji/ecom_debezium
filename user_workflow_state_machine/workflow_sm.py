@@ -1,4 +1,14 @@
-from .state import StateInterface, AuthenticatedState, BrowsingState, UnauthenticatedState, TerminalState, EntryState
+from .state import (
+    StateInterface,
+    AuthenticatedState,
+    BrowsingState,
+    RemoveFromCart,
+    UnauthenticatedState,
+    TerminalState,
+    EntryState,
+    ViewProductState,
+    AddToCartState,
+)
 from collections import deque
 import random
 
@@ -11,6 +21,9 @@ class UserWorkflowStateMachine:
         on_process_browsing=None,
         on_process_unauthenticated=None,
         on_process_terminal=None,
+        on_process_view_product=None,
+        on_process_add_to_cart=None,
+        on_process_remove_from_cart=None,
     ):
         self.state_mappings = {
             EntryState: {
@@ -22,8 +35,38 @@ class UserWorkflowStateMachine:
                 "on_process": on_process_authenticate,
             },
             BrowsingState: {
-                "states": [BrowsingState, UnauthenticatedState],
+                "states": [
+                    BrowsingState,
+                    ViewProductState,
+                    UnauthenticatedState,
+                ],
                 "on_process": on_process_browsing,
+            },
+            ViewProductState: {
+                "states": [
+                    BrowsingState,
+                    ViewProductState,
+                    UnauthenticatedState,
+                    AddToCartState,
+                    RemoveFromCart,
+                ],
+                "on_process": on_process_view_product,
+            },
+            AddToCartState: {
+                "states": [
+                    BrowsingState,
+                    ViewProductState,
+                    UnauthenticatedState,
+                    RemoveFromCart,
+                ],
+                "on_process": on_process_add_to_cart,
+            },
+            RemoveFromCart: {
+                "states": [
+                    BrowsingState,
+                    UnauthenticatedState,
+                ],
+                "on_process": on_process_remove_from_cart,
             },
             UnauthenticatedState: {
                 "states": [TerminalState],
