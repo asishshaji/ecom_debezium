@@ -10,7 +10,9 @@ import json
 class DataclassProtocol(Protocol):
     __dataclass_fields__: dict
 
+
 T = TypeVar("T", bound=DataclassProtocol)
+
 
 class Database:
     def __init__(self, logger: Logger, schema: str, conn: Connection | None = None):
