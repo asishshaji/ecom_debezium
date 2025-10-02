@@ -8,9 +8,9 @@ import aiofiles
 from aiocsv import AsyncReader
 import traceback
 from asyncpg import Record
-from utils.models import EventType
-import random
-from utils.utils import timeit
+from user_workflow_state_machine.workflow_sm import UserWorkflowStateMachine
+from user_workflow_state_machine.state_handlers import UserStateHandlers
+import uuid
 
 
 class Generator:
@@ -152,105 +152,39 @@ class Generator:
             raise e
 
     async def user_routine(self, semaphore: asyncio.Semaphore):
-        user_buffer = []
-        user_buffer_limit = 50
         async with semaphore:
             try:
                 u = await self.db_writer.select(
                     table="USER", limit=1, order_by=["RANDOM()"]
                 )
                 username = u[0]["username"]
+                user_ip = u[0]["ip_address"]
 
                 # simulate user viewing products
                 products: list[Record] = await self.db_writer.select(
                     table="PRODUCT", limit=10, order_by=["RANDOM()"]
                 )
 
+                usm = UserStateHandlers(
+                    db=self.db_writer,
+                    faker=self.faker,
+                    products=products,
+                    username=username,
+                    ip_address=user_ip,
+                )
+                user_workflow_sm = UserWorkflowStateMachine(handlers=usm)
                 # each user is expected to perform actions
-                for _ in range(100):
-                    event_type: EventType = random.choice(list(EventType))
-                    self.logger.info(f"{username} doing {event_type}")
-                    event = Event.new(
-                        faker=self.faker,
-                        user_name=username,
-                        event_type=event_type,
+                for i in range(10):
+                    # kick start state machine
+                    await user_workflow_sm.handle()
+                    self.logger.info(
+                        f"completed iteration : {i + 1} sleeping user : {username}"
                     )
-
-                    product = random.choice(products)
-                    if event_type == EventType.PURCHASE:
-                        # TODO create order
-                        # update event with product information
-                        qty = random.randint(1, 10)
-
-                        event.metadata = {
-                            "product_id": str(product["id"]),
-                            "quantity": qty,
-                            "actual_price": product["actual_price"],
-                            "discount_price": product["discount_price"],
-                            "currency": random.choice(["INR", "USD", "EUR"]),
-                            "payment_method": random.choice(
-                                ["CARD", "UPI", "COD", "WALLET"]
-                            ),
-                        }
-                    elif event_type == EventType.SCROLL:
-                        event.metadata = {
-                            "page": random.choice(
-                                ["home", "search", "product", "cart", "checkout"]
-                            ),
-                            "scroll_depth": random.randint(0, 1),
-                            "duration_ms": random.randint(0, 4000),
-                        }
-                    elif event_type == EventType.CLICK:
-                        event.metadata = {
-                            "element_type": random.choice(
-                                ["button", "link", "image", "add_to_cart", "checkout"]
-                            ),
-                            "element_id": f"el-{random.randint(1000, 9999)}",
-                            "page": random.choice(
-                                ["home", "product", "cart", "search"]
-                            ),
-                            "target_url": self.faker.uri_path(),
-                        }
-                    elif event_type == EventType.VIEW_PRODUCT:
-                        event.metadata = {
-                            "product_id": str(product["id"]),
-                            "main_category": product["main_category"],
-                            "sub_category": product["sub_category"],
-                            "referrer": random.choice(
-                                ["home", "search", "recommendation"]
-                            ),
-                            "duration_ms": random.randint(1000, 30000),
-                        }
-                    elif event_type == EventType.CANCEL:
-                        event.metadata = {
-                            # "order_id": str(faker.uuid4()),
-                            "reason": random.choice(
-                                [
-                                    "changed_mind",
-                                    "found_cheaper",
-                                    "delivery_delay",
-                                    "other",
-                                ]
-                            ),
-                            # "time_since_purchase_min": random.randint(1, 1440),
-                        }
-
-                    if len(user_buffer) < user_buffer_limit:
-                        user_buffer.append(event)
-                    else:
-                        await self.db_writer.upsert(table="EVENT", data=user_buffer)
-                        user_buffer.clear()
-
-                    # simulate delay between events
-                    await asyncio.sleep(random.uniform(0, 1))
-
-                # if buffer is not empty, force flush
-                if len(user_buffer) != 0:
-                    await self.db_writer.upsert(table="EVENT", data=user_buffer)
+                    await asyncio.sleep(1)
+                    self.logger.info(f"new iteration : {i + 1} user awake : {username}")
 
             except asyncio.CancelledError:
                 self.logger.info(f"cancelling routine of {username}")
-                await self.db_writer.upsert(table="EVENT", data=user_buffer)
                 raise
             finally:
                 self.logger.info(f"{username} done!!!")
@@ -261,7 +195,7 @@ class Generator:
         try:
             while True:
                 # create x users, but is limited by x limit in semaphore
-                user_flow_tasks = [self.user_routine(semaphore) for _ in range(10)]
+                user_flow_tasks = [self.user_routine(semaphore) for _ in range(100)]
                 await asyncio.gather(*user_flow_tasks)
                 break
 

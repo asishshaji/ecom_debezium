@@ -8,6 +8,7 @@ class StateInterface(ABC):
         self.next_states: list[Type["StateInterface"]] = next_states or []
         self.on_process = on_process
 
+
 class EntryState(StateInterface):
     pass
 

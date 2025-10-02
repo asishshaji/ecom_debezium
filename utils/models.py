@@ -119,16 +119,23 @@ class Product:
 
 
 class EventType(Enum):
+    ENTRY = "USER_ENTRY"
+    LOGIN = "LOGIN"
+    LOGOUT = "LOGOUT"
     PURCHASE = "PURCHASE"
     CANCEL = "CANCEL"
-    SCROLL = "SCROLL"
+    BROWSING = "BROWSING"
     CLICK = "CLICK"
-    VIEW_PRODUCT = "VIEW"
+    VIEW_PRODUCT = "VIEW_PRODUCT"
+    EXIT = "USER_EXIT"
+    ADD_TO_CART = "ADD_TO_CART"
+    REMOVE_FROM_CART = "REMOVE_FROM_CART"
 
 
 @dataclass
 class Event:
     id: str
+    context_id: str  # for context propagation
     ip_address: str
     user_name: str | None
     user_agent: str
@@ -141,12 +148,15 @@ class Event:
         cls,
         faker: Faker,
         user_name: str,
+        ip_address: str,
         event_type: EventType,
         metadata: dict[str, Any] | None = None,
+        context_id: str | None = None,
     ):
         return Event(
             id=str(uuid.uuid4()),
-            ip_address=faker.ipv4(),
+            ip_address=ip_address,
+            context_id=context_id,
             user_name=user_name,
             user_agent=faker.user_agent(),
             event_type=event_type.value,
@@ -161,6 +171,7 @@ class Event:
                 id UUID PRIMARY KEY,
                 event_type VARCHAR(20) NOT NULL,
                 ip_address CIDR NOT NULL,
+                context_id UUID,
                 user_name VARCHAR(40),
                 created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_DATE,
                 user_agent TEXT,

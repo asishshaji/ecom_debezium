@@ -11,28 +11,19 @@ from .state import (
 )
 from collections import deque
 import random
+import uuid
 
 
 class UserWorkflowStateMachine:
-    def __init__(
-        self,
-        on_process_entry=None,
-        on_process_authenticate=None,
-        on_process_browsing=None,
-        on_process_unauthenticated=None,
-        on_process_terminal=None,
-        on_process_view_product=None,
-        on_process_add_to_cart=None,
-        on_process_remove_from_cart=None,
-    ):
+    def __init__(self, handlers):
         self.state_mappings = {
             EntryState: {
                 "states": [AuthenticatedState],
-                "on_process": on_process_entry,
+                "on_process": getattr(handlers, "on_process_entry", None),
             },
             AuthenticatedState: {
                 "states": [BrowsingState],
-                "on_process": on_process_authenticate,
+                "on_process": getattr(handlers, "on_process_authenticate", None),
             },
             BrowsingState: {
                 "states": [
@@ -40,7 +31,7 @@ class UserWorkflowStateMachine:
                     ViewProductState,
                     UnauthenticatedState,
                 ],
-                "on_process": on_process_browsing,
+                "on_process": getattr(handlers, "on_process_browsing", None),
             },
             ViewProductState: {
                 "states": [
@@ -50,7 +41,7 @@ class UserWorkflowStateMachine:
                     AddToCartState,
                     RemoveFromCart,
                 ],
-                "on_process": on_process_view_product,
+                "on_process": getattr(handlers, "on_process_view_product", None),
             },
             AddToCartState: {
                 "states": [
@@ -59,26 +50,29 @@ class UserWorkflowStateMachine:
                     UnauthenticatedState,
                     RemoveFromCart,
                 ],
-                "on_process": on_process_add_to_cart,
+                "on_process": getattr(handlers, "on_process_add_to_cart", None),
             },
             RemoveFromCart: {
                 "states": [
                     BrowsingState,
                     UnauthenticatedState,
                 ],
-                "on_process": on_process_remove_from_cart,
+                "on_process": getattr(handlers, "on_process_remove_from_cart", None),
             },
             UnauthenticatedState: {
                 "states": [TerminalState],
-                "on_process": on_process_unauthenticated,
+                "on_process": getattr(handlers, "on_process_unauthenticated", None),
             },
             TerminalState: {
                 "states": [],
-                "on_process": None,
+                "on_process": getattr(handlers, "on_process_terminal", None),
             },
         }
 
-    def handle(self) -> StateInterface:
+    async def handle(self) -> StateInterface:
+        # used for propagation
+        self.context_id = uuid.uuid4()
+
         state_objs_mapper = {}
         for state, info in self.state_mappings.items():
             state_objs_mapper[state.__name__] = state(
@@ -95,8 +89,9 @@ class UserWorkflowStateMachine:
             state_obj = queue.popleft()
             # sentinal
             if isinstance(state_obj, TerminalState):
+                await state_obj.on_process(self.context_id)
                 break
-            state_obj.on_process()
+            await state_obj.on_process(self.context_id)
             next_states = [
                 state_objs_mapper[state.__name__] for state in state_obj.next_states
             ]
