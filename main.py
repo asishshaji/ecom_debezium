@@ -18,6 +18,7 @@ def main():
     truncate_table = args.truncate_table
     rebuild_database = args.rebuild
     skip_init = args.skip_init
+
     run_simulation(
         user_count=user_count,
         truncate_table=truncate_table,

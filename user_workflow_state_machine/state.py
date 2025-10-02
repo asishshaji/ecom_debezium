@@ -1,4 +1,3 @@
-from abc import abstractmethod
 from abc import ABC
 from typing import Type
 
@@ -30,6 +29,10 @@ class AddToCartState(StateInterface):
 
 
 class RemoveFromCart(StateInterface):
+    pass
+
+
+class PlaceOrder(StateInterface):
     pass
 
 

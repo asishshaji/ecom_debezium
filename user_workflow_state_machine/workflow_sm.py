@@ -1,3 +1,4 @@
+from user_workflow_state_machine.state import PlaceOrder
 from .state import (
     StateInterface,
     AuthenticatedState,
@@ -49,8 +50,15 @@ class UserWorkflowStateMachine:
                     ViewProductState,
                     UnauthenticatedState,
                     RemoveFromCart,
+                    PlaceOrder,
                 ],
                 "on_process": getattr(handlers, "on_process_add_to_cart", None),
+            },
+            PlaceOrder: {
+                "states": [
+                    BrowsingState,
+                ],
+                "on_process": getattr(handlers, "on_process_place_order", None),
             },
             RemoveFromCart: {
                 "states": [

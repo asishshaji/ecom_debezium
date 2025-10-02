@@ -48,7 +48,7 @@ class User:
         return f"""
             CREATE TABLE IF NOT EXISTS {schema}.{cls.__name__} (
                 id UUID PRIMARY KEY,
-                username VARCHAR(40) NOT NULL UNIQUE,
+                username VARCHAR(40) NOT NULL,
                 first_name VARCHAR(40) NOT NULL,
                 last_name VARCHAR(40) NOT NULL,
                 created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_DATE,
@@ -56,7 +56,8 @@ class User:
                 address VARCHAR(100),
                 gender VARCHAR(1) NOT NULL CHECK(gender IN ('M', 'F', 'O')),
                 ip_address CIDR NOT NULL,
-                user_agent TEXT NOT NULL
+                user_agent TEXT NOT NULL,
+                UNIQUE (id, username)
             )
         """
 
@@ -105,7 +106,7 @@ class Product:
         return f"""
             CREATE TABLE IF NOT EXISTS {schema}.{cls.__name__} (
             id UUID PRIMARY KEY,
-            name TEXT NOT NULL UNIQUE,
+            name TEXT NOT NULL,
             main_category VARCHAR(50) NOT NULL,
             sub_category VARCHAR(50) NOT NULL,
             image TEXT,
@@ -113,7 +114,8 @@ class Product:
             ratings REAL,
             no_of_ratings NUMERIC,
             discount_price REAL,
-            actual_price REAL
+            actual_price REAL,
+            UNIQUE(id, name)
             )
         """
 
@@ -122,7 +124,7 @@ class EventType(Enum):
     ENTRY = "USER_ENTRY"
     LOGIN = "LOGIN"
     LOGOUT = "LOGOUT"
-    PURCHASE = "PURCHASE"
+    PLACE_ORDER = "PLACE_ORDER"
     CANCEL = "CANCEL"
     BROWSING = "BROWSING"
     CLICK = "CLICK"
@@ -148,7 +150,7 @@ class Event:
         cls,
         user_name: str,
         ip_address: str,
-        user_agent:str,
+        user_agent: str,
         event_type: EventType,
         metadata: dict[str, Any] | None = None,
         context_id: str | None = None,
@@ -176,5 +178,64 @@ class Event:
                 created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_DATE,
                 user_agent TEXT,
                 metadata JSONB
+            )
+        """
+
+
+@dataclass
+class Order:
+    id: str
+    u_id: str
+    created_at: datetime
+
+    @classmethod
+    def new(cls, u_id: str):
+        return Order(
+            id=str(uuid.uuid4()),
+            u_id=u_id,
+            created_at=datetime.now(),
+        )
+
+    @classmethod
+    def ddl(cls, schema):
+        return f"""
+            CREATE TABLE IF NOT EXISTS {schema}.{cls.__name__} (
+                id UUID PRIMARY KEY,
+                u_id UUID NOT NULL,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_DATE,
+                FOREIGN KEY (u_id) REFERENCES {schema}.USER(id)
+            )
+        """
+
+
+@dataclass
+class OrderLine:
+    id: str
+    order_id: str
+    product_id: str
+    quantity: str
+    created_at: datetime
+
+    @classmethod
+    def new(cls, order_id: str, product_id: str, quantity: float):
+        return OrderLine(
+            id=str(uuid.uuid4()),
+            order_id=order_id,
+            product_id=product_id,
+            quantity=quantity,
+            created_at=datetime.now(),
+        )
+
+    @classmethod
+    def ddl(cls, schema):
+        return f"""
+            CREATE TABLE IF NOT EXISTS {schema}.{cls.__name__}(
+            id UUID PRIMARY KEY,
+            order_id UUID NOT NULL,
+            product_id UUID NOT NULL,
+            quantity REAL,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_DATE,
+            FOREIGN KEY (order_id) REFERENCES {schema}.Order(id),
+            FOREIGN KEY (product_id) REFERENCES {schema}.Product(id)
             )
         """

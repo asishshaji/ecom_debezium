@@ -2,7 +2,7 @@ import asyncio
 
 from utils import Database
 from faker import Faker
-from utils.models import User, Product, Event
+from utils.models import User, Product, Event, Order, OrderLine
 import logging
 import aiofiles
 from aiocsv import AsyncReader
@@ -10,7 +10,6 @@ import traceback
 from asyncpg import Record
 from user_workflow_state_machine.workflow_sm import UserWorkflowStateMachine
 from user_workflow_state_machine.state_handlers import UserStateHandlers
-import uuid
 
 
 class Generator:
@@ -26,7 +25,7 @@ class Generator:
         self.schema = schema
 
         self.faker = Faker()
-        self.tables = [User, Product, Event]
+        self.tables = [User, Product, Event, Order, OrderLine]
 
         self.db_writer: Database | None = None
         self.logger: logging.Logger = logger
@@ -94,7 +93,7 @@ class Generator:
             users.append(u)
 
         await self.db_writer.upsert(
-            data=users, table="USER", conflict_keys=["username"]
+            data=users, table="USER", conflict_keys=["username", "id"]
         )
 
     async def create_products(self):
@@ -138,7 +137,7 @@ class Generator:
                 products.append(p)
 
             await self.db_writer.upsert(
-                data=products, table="PRODUCT", conflict_keys=["name"]
+                data=products, table="PRODUCT", conflict_keys=["id", "name"]
             )
 
     async def start(self, skip_init: bool = False):
@@ -155,7 +154,7 @@ class Generator:
         async with semaphore:
             try:
                 u = await self.db_writer.select(
-                    columns=["username", "ip_address", "user_agent"],
+                    columns=["id", "username", "ip_address", "user_agent"],
                     table="USER",
                     limit=1,
                     order_by=["RANDOM()"],
@@ -163,6 +162,7 @@ class Generator:
                 username = u[0]["username"]
                 user_ip = u[0]["ip_address"]
                 user_agent = u[0]["user_agent"]
+                u_id = u[0]["id"]
 
                 # simulate user viewing products
                 products: list[Record] = await self.db_writer.select(
@@ -176,6 +176,7 @@ class Generator:
                     username=username,
                     ip_address=user_ip,
                     user_agent=user_agent,
+                    user_id=u_id,
                 )
                 user_workflow_sm = UserWorkflowStateMachine(handlers=usm)
                 # each user is expected to perform actions
@@ -183,7 +184,7 @@ class Generator:
                     # kick start state machine
                     await user_workflow_sm.handle()
                     self.logger.info(
-                        f"completed iteration : {i + 1} sleeping user : {username}"
+                        f"completed iteration #{i + 1} for user : {username}"
                     )
 
             except asyncio.CancelledError:
