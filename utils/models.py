@@ -146,9 +146,9 @@ class Event:
     @classmethod
     def new(
         cls,
-        faker: Faker,
         user_name: str,
         ip_address: str,
+        user_agent:str,
         event_type: EventType,
         metadata: dict[str, Any] | None = None,
         context_id: str | None = None,
@@ -158,7 +158,7 @@ class Event:
             ip_address=ip_address,
             context_id=context_id,
             user_name=user_name,
-            user_agent=faker.user_agent(),
+            user_agent=user_agent,
             event_type=event_type.value,
             created_at=datetime.now(),
             metadata=metadata,

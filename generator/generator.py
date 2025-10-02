@@ -155,10 +155,14 @@ class Generator:
         async with semaphore:
             try:
                 u = await self.db_writer.select(
-                    table="USER", limit=1, order_by=["RANDOM()"]
+                    columns=["username", "ip_address", "user_agent"],
+                    table="USER",
+                    limit=1,
+                    order_by=["RANDOM()"],
                 )
                 username = u[0]["username"]
                 user_ip = u[0]["ip_address"]
+                user_agent = u[0]["user_agent"]
 
                 # simulate user viewing products
                 products: list[Record] = await self.db_writer.select(
@@ -171,6 +175,7 @@ class Generator:
                     products=products,
                     username=username,
                     ip_address=user_ip,
+                    user_agent=user_agent,
                 )
                 user_workflow_sm = UserWorkflowStateMachine(handlers=usm)
                 # each user is expected to perform actions
@@ -180,8 +185,6 @@ class Generator:
                     self.logger.info(
                         f"completed iteration : {i + 1} sleeping user : {username}"
                     )
-                    await asyncio.sleep(1)
-                    self.logger.info(f"new iteration : {i + 1} user awake : {username}")
 
             except asyncio.CancelledError:
                 self.logger.info(f"cancelling routine of {username}")
@@ -191,7 +194,7 @@ class Generator:
 
     async def run(self):
         # simulate x concurrent users
-        semaphore = asyncio.Semaphore(5)
+        semaphore = asyncio.Semaphore(50)
         try:
             while True:
                 # create x users, but is limited by x limit in semaphore

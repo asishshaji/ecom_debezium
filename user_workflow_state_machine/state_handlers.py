@@ -14,11 +14,13 @@ class UserStateHandlers:
         products: list[Product],
         username: str,
         ip_address: str,
+        user_agent:str,
         user_buffer_limit: int = 5,
     ):
         self.db: Database = db
         self.username = username
         self.ip_address = ip_address
+        self.user_agent = user_agent
         self.user_buffer_limit = user_buffer_limit
         self.user_buffer = []
         self.faker = faker
@@ -38,7 +40,7 @@ class UserStateHandlers:
 
     async def on_process_entry(self, context_id: str):
         event = Event.new(
-            faker=self.faker,
+            user_agent = self.user_agent,
             user_name=self.username,
             event_type=EventType.ENTRY,
             context_id=context_id,
@@ -48,7 +50,7 @@ class UserStateHandlers:
 
     async def on_process_authenticate(self, context_id: str):
         event = Event.new(
-            faker=self.faker,
+            user_agent = self.user_agent,
             user_name=self.username,
             event_type=EventType.LOGIN,
             context_id=context_id,
@@ -58,7 +60,7 @@ class UserStateHandlers:
 
     async def on_process_browsing(self, context_id: str):
         event = Event.new(
-            faker=self.faker,
+            user_agent = self.user_agent,
             user_name=self.username,
             event_type=EventType.BROWSING,
             context_id=context_id,
@@ -73,7 +75,7 @@ class UserStateHandlers:
 
     async def on_process_unauthenticated(self, context_id: str):
         event = Event.new(
-            faker=self.faker,
+            user_agent = self.user_agent,
             user_name=self.username,
             event_type=EventType.LOGOUT,
             context_id=context_id,
@@ -84,7 +86,7 @@ class UserStateHandlers:
     async def on_process_terminal(self, context_id: str):
         # on termination flush the buffer
         event = Event.new(
-            faker=self.faker,
+            user_agent = self.user_agent,
             user_name=self.username,
             event_type=EventType.EXIT,
             context_id=context_id,
@@ -96,7 +98,7 @@ class UserStateHandlers:
     async def on_process_view_product(self, context_id: str):
         product = random.choice(self.products)
         event = Event.new(
-            faker=self.faker,
+            user_agent = self.user_agent,
             user_name=self.username,
             event_type=EventType.VIEW_PRODUCT,
             context_id=context_id,
@@ -113,8 +115,8 @@ class UserStateHandlers:
 
     async def on_process_add_to_cart(self, context_id: str):
         event = Event.new(
-            faker=self.faker,
             user_name=self.username,
+            user_agent = self.user_agent,
             event_type=EventType.ADD_TO_CART,
             context_id=context_id,
             ip_address=self.ip_address,
@@ -123,8 +125,8 @@ class UserStateHandlers:
 
     async def on_process_remove_from_cart(self, context_id: str):
         event = Event.new(
-            faker=self.faker,
             user_name=self.username,
+            user_agent = self.user_agent,
             event_type=EventType.REMOVE_FROM_CART,
             context_id=context_id,
             ip_address=self.ip_address,
