@@ -77,17 +77,18 @@ class UserWorkflowStateMachine:
             },
         }
 
+        # Create state objects once, not on every handle() call
+        self._state_objs_mapper = {}
+        for state, info in self.state_mappings.items():
+            self._state_objs_mapper[state.__name__] = state(
+                next_states=info["states"], on_process=info["on_process"]
+            )
+
     async def handle(self) -> StateInterface:
         # used for propagation
         self.context_id = uuid.uuid4()
 
-        state_objs_mapper = {}
-        for state, info in self.state_mappings.items():
-            state_objs_mapper[state.__name__] = state(
-                next_states=info["states"], on_process=info["on_process"]
-            )
-
-        start_state_obj = state_objs_mapper[EntryState.__name__]
+        start_state_obj = self._state_objs_mapper[EntryState.__name__]
 
         queue = deque([start_state_obj])
         state_obj = None
@@ -101,7 +102,7 @@ class UserWorkflowStateMachine:
                 break
             await state_obj.on_process(self.context_id)
             next_states = [
-                state_objs_mapper[state.__name__] for state in state_obj.next_states
+                self._state_objs_mapper[state.__name__] for state in state_obj.next_states
             ]
             queue.extend(random.choices(next_states))
 

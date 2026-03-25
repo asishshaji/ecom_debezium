@@ -46,7 +46,7 @@ class User:
     @classmethod
     def ddl(cls, schema):
         return f"""
-            CREATE TABLE IF NOT EXISTS {schema}.{cls.__name__} (
+            CREATE TABLE IF NOT EXISTS {schema}.user (
                 id UUID PRIMARY KEY,
                 username VARCHAR(40) NOT NULL,
                 first_name VARCHAR(40) NOT NULL,
@@ -104,7 +104,7 @@ class Product:
     @classmethod
     def ddl(cls, schema):
         return f"""
-            CREATE TABLE IF NOT EXISTS {schema}.{cls.__name__} (
+            CREATE TABLE IF NOT EXISTS {schema}.product (
             id UUID PRIMARY KEY,
             name TEXT NOT NULL,
             main_category VARCHAR(50) NOT NULL,
@@ -169,7 +169,7 @@ class Event:
     @classmethod
     def ddl(cls, schema):
         return f"""
-            CREATE TABLE IF NOT EXISTS {schema}.{cls.__name__} (
+            CREATE TABLE IF NOT EXISTS {schema}.event (
                 id UUID PRIMARY KEY,
                 event_type VARCHAR(20) NOT NULL,
                 ip_address CIDR NOT NULL,
@@ -199,11 +199,11 @@ class Order:
     @classmethod
     def ddl(cls, schema):
         return f"""
-            CREATE TABLE IF NOT EXISTS {schema}.{cls.__name__} (
+            CREATE TABLE IF NOT EXISTS {schema}.orders (
                 id UUID PRIMARY KEY,
                 u_id UUID NOT NULL,
                 created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_DATE,
-                FOREIGN KEY (u_id) REFERENCES {schema}.USER(id)
+                FOREIGN KEY (u_id) REFERENCES {schema}.user(id)
             )
         """
 
@@ -213,11 +213,11 @@ class OrderLine:
     id: str
     order_id: str
     product_id: str
-    quantity: str
+    quantity: int
     created_at: datetime
 
     @classmethod
-    def new(cls, order_id: str, product_id: str, quantity: float):
+    def new(cls, order_id: str, product_id: str, quantity: int):
         return OrderLine(
             id=str(uuid.uuid4()),
             order_id=order_id,
@@ -229,13 +229,13 @@ class OrderLine:
     @classmethod
     def ddl(cls, schema):
         return f"""
-            CREATE TABLE IF NOT EXISTS {schema}.{cls.__name__}(
+            CREATE TABLE IF NOT EXISTS {schema}.order_line (
             id UUID PRIMARY KEY,
             order_id UUID NOT NULL,
             product_id UUID NOT NULL,
-            quantity REAL,
+            quantity INTEGER,
             created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_DATE,
-            FOREIGN KEY (order_id) REFERENCES {schema}.Order(id),
-            FOREIGN KEY (product_id) REFERENCES {schema}.Product(id)
+            FOREIGN KEY (order_id) REFERENCES {schema}.orders(id),
+            FOREIGN KEY (product_id) REFERENCES {schema}.product(id)
             )
         """

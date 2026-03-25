@@ -3,6 +3,22 @@ from faker import Faker
 from utils.models import EventType, Order, Event, OrderLine, Product
 import random
 from random import randint
+import asyncio
+from functools import wraps
+
+
+def flush_on_cancel(func):
+    """Decorator that flushes event buffer if coroutine is cancelled."""
+
+    @wraps(func)
+    async def wrapper(self, context_id: str):
+        try:
+            return await func(self, context_id)
+        except asyncio.CancelledError:
+            await self._force_flush()
+            raise
+
+    return wrapper
 
 
 class UserStateHandlers:
@@ -30,15 +46,16 @@ class UserStateHandlers:
     async def _buffer_event(self, event: Event):
         self.event_buffer.append(event)
         if len(self.event_buffer) >= self.event_buffer_limit:
-            await self.db.upsert(table="EVENT", data=self.event_buffer)
+            await self.db.upsert(table="event", data=self.event_buffer)
             self.event_buffer.clear()
 
     async def _force_flush(self):
         if not self.event_buffer:
             return
-        await self.db.upsert(table="EVENT", data=self.event_buffer)
+        await self.db.upsert(table="event", data=self.event_buffer)
         self.event_buffer.clear()
 
+    @flush_on_cancel
     async def on_process_entry(self, context_id: str):
         event = Event.new(
             user_agent=self.user_agent,
@@ -49,6 +66,7 @@ class UserStateHandlers:
         )
         await self._buffer_event(event)
 
+    @flush_on_cancel
     async def on_process_authenticate(self, context_id: str):
         event = Event.new(
             user_agent=self.user_agent,
@@ -59,6 +77,7 @@ class UserStateHandlers:
         )
         await self._buffer_event(event)
 
+    @flush_on_cancel
     async def on_process_browsing(self, context_id: str):
         event = Event.new(
             user_agent=self.user_agent,
@@ -74,6 +93,7 @@ class UserStateHandlers:
         }
         await self._buffer_event(event)
 
+    @flush_on_cancel
     async def on_process_unauthenticated(self, context_id: str):
         event = Event.new(
             user_agent=self.user_agent,
@@ -84,6 +104,7 @@ class UserStateHandlers:
         )
         await self._buffer_event(event)
 
+    @flush_on_cancel
     async def on_process_terminal(self, context_id: str):
         # on termination flush the buffer
         event = Event.new(
@@ -96,6 +117,7 @@ class UserStateHandlers:
         await self._buffer_event(event)
         await self._force_flush()
 
+    @flush_on_cancel
     async def on_process_view_product(self, context_id: str):
         product = random.choice(self.products)
         event = Event.new(
@@ -114,6 +136,7 @@ class UserStateHandlers:
         }
         await self._buffer_event(event)
 
+    @flush_on_cancel
     async def on_process_add_to_cart(self, context_id: str):
         event = Event.new(
             user_name=self.username,
@@ -124,6 +147,7 @@ class UserStateHandlers:
         )
         await self._buffer_event(event)
 
+    @flush_on_cancel
     async def on_process_remove_from_cart(self, context_id: str):
         event = Event.new(
             user_name=self.username,
@@ -134,6 +158,7 @@ class UserStateHandlers:
         )
         await self._buffer_event(event)
 
+    @flush_on_cancel
     async def on_process_place_order(self, context_id):
         event = Event.new(
             user_name=self.username,
@@ -145,7 +170,7 @@ class UserStateHandlers:
         await self._buffer_event(event)
         # create order
         order = Order.new(u_id=self.user_id)
-        await self.db.upsert(table="order", data=[order])
+        await self.db.upsert(table="orders", data=[order])
 
         order_lines = []
         products = random.choices(self.products, k=random.randint(1, 5))
@@ -158,4 +183,4 @@ class UserStateHandlers:
                     quantity=random.randint(1, 20),
                 )
             )
-        await self.db.upsert(table="orderline", data=order_lines)
+        await self.db.upsert(table="order_line", data=order_lines)

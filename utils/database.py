@@ -1,7 +1,7 @@
 import dataclasses
 from typing import Protocol, TypeVar
 import asyncpg
-from asyncpg import Connection
+from asyncpg import Pool
 from logging import Logger
 from typing import Any
 import json
@@ -15,10 +15,15 @@ T = TypeVar("T", bound=DataclassProtocol)
 
 
 class Database:
-    def __init__(self, logger: Logger, schema: str, conn: Connection | None = None):
-        self.conn: Connection | None = conn
+    def __init__(self, logger: Logger, schema: str, pool: Pool | None = None):
+        self.pool: Pool | None = pool
         self.logger: Logger = logger
         self.schema = schema
+
+    @property
+    def conn(self) -> Pool | None:
+        """Backward compatible property alias."""
+        return self.pool
 
     @classmethod
     async def create(
@@ -38,7 +43,7 @@ class Database:
             port=port,
             host=host,
         )
-        return cls(logger=logger, conn=pool, schema=schema)
+        return cls(logger=logger, pool=pool, schema=schema)
 
     async def select(
         self,
@@ -57,15 +62,6 @@ class Database:
         else:
             columns_placeholder = ",".join(columns)
 
-        temp_where_placeholder = ""
-        if where_clause:
-            temp_where_placeholder = " AND ".join(
-                [f"{key} = {value}" for key, value in where_clause.items()]
-            )
-        where_placeholder = ""
-        if temp_where_placeholder:
-            where_placeholder = f"WHERE {temp_where_placeholder}"
-
         order_by_placeholder = ""
         if order_by:
             order_by_placeholder = ", ".join(order_by)
@@ -75,8 +71,18 @@ class Database:
         if limit:
             limit_placeholder = f"LIMIT {limit}"
 
+        # Build WHERE clause with parameterized queries
+        where_placeholder = ""
+        params = []
+        if where_clause:
+            conditions = []
+            for i, (key, value) in enumerate(where_clause.items()):
+                conditions.append(f"{key} = ${i + 1}")
+                params.append(value)
+            where_placeholder = f"WHERE {' AND '.join(conditions)}"
+
         query = f"SELECT {columns_placeholder} from {self.schema}.{table} {where_placeholder} {order_by_placeholder} {limit_placeholder}"
-        res = await self.conn.fetch(query)
+        res = await self.pool.fetch(query, *params)
         return res
 
     async def upsert(
@@ -126,7 +132,7 @@ class Database:
                 items.append(item)
             values.append(tuple(items))
 
-        await self.conn.executemany(query, values)
+        await self.pool.executemany(query, values)
 
     async def truncate_tables(self, table_names):
         if not table_names:
@@ -135,7 +141,7 @@ class Database:
         query_input = [f"{self.schema}.{table_name}" for table_name in table_names]
         query = f"TRUNCATE {','.join(query_input)}"
 
-        await self.conn.execute(query)
+        await self.pool.execute(query)
 
     def _normalize(self, data: list[dict | T]):
         if len(data) == 0:
@@ -146,16 +152,16 @@ class Database:
             return data
 
     async def create_tables(self, schema_str, ddls):
-        if not self.conn:
+        if not self.pool:
             raise Exception("no db connection found")
-        await self.conn.execute(schema_str)
+        await self.pool.execute(schema_str)
         for ddl in ddls:
-            await self.conn.execute(ddl)
+            await self.pool.execute(ddl)
 
     async def drop_schema(self):
         query = f"DROP SCHEMA IF EXISTS {self.schema} CASCADE"
-        await self.conn.execute(query)
+        await self.pool.execute(query)
 
     async def close(self):
-        if self.conn:
-            await self.conn.close()
+        if self.pool:
+            await self.pool.close()

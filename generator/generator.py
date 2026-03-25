@@ -93,7 +93,7 @@ class Generator:
             users.append(u)
 
         await self.db_writer.upsert(
-            data=users, table="USER", conflict_keys=["username", "id"]
+            data=users, table="user", conflict_keys=["username", "id"]
         )
 
     async def create_products(self):
@@ -137,7 +137,7 @@ class Generator:
                 products.append(p)
 
             await self.db_writer.upsert(
-                data=products, table="PRODUCT", conflict_keys=["id", "name"]
+                data=products, table="product", conflict_keys=["id", "name"]
             )
 
     async def start(self, skip_init: bool = False):
@@ -155,7 +155,7 @@ class Generator:
             try:
                 u = await self.db_writer.select(
                     columns=["id", "username", "ip_address", "user_agent"],
-                    table="USER",
+                    table="user",
                     limit=1,
                     order_by=["RANDOM()"],
                 )
@@ -166,7 +166,7 @@ class Generator:
 
                 # simulate user viewing products
                 products: list[Record] = await self.db_writer.select(
-                    table="PRODUCT", limit=10, order_by=["RANDOM()"]
+                    table="product", limit=10, order_by=["RANDOM()"]
                 )
 
                 usm = UserStateHandlers(
